@@ -31,20 +31,22 @@ The program uses a configuration file named config.txt to read parameters for th
 3. Compile the program:
 
 	Using GCC:
-```
-g++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
-```
-Using Clang:
-```
-clang++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
-```
-Using MSVC (Visual Studio Developer Command Prompt):
-```
-cl /std:c++20 ProblemSet1.cpp
-```
+	```
+	g++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
+	```
+	Using Clang:
+	```
+	clang++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
+	```
+	Using MSVC (Visual Studio Developer Command Prompt):
+	```
+	cl /std:c++20 ProblemSet1.cpp
+	```
 
-Run the program:
-```./ProblemSet1```
+	Run the program:
+	```
+	./ProblemSet1
+	```
 
 The program will display the prime numbers found according to the specified task division and print variation.
 
