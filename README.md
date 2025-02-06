@@ -1,5 +1,5 @@
 # Prime Number Finder
-This program finds prime numbers up to a specified SEARCH_LIMIT using multiple threads. The program's configuration can be customized through a config.txt file. It supports two different task division strategies for parallelizing the search process, and the output format can be adjusted based on your needs.
+This program finds prime numbers up to a specified SEARCH_LIMIT using multiple threads. The program's configuration can be customized through a config.txt file. It supports two different task division strategies for parallelizing the search process, and two different printing strategies.
 
 # Requirements
 - C++20 or later
@@ -22,6 +22,31 @@ The program uses a configuration file named config.txt to read parameters for th
 
 - SEARCH_LIMIT:
 	The maximum number up to which prime numbers will be found. Must be a positive integer and less than or equal to 2147483647 (the maximum value for a 32-bit signed integer).
+
+# How to Compile and Run
+1. Ensure that you are using a C++20-compatible compiler.
+
+2. Create a file named config.txt with your desired configuration values.
+
+3. Compile the program:
+
+	Using GCC:
+```
+g++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
+```
+Using Clang:
+```
+clang++ -std=c++20 -o ProblemSet1 ProblemSet1.cpp
+```
+Using MSVC (Visual Studio Developer Command Prompt):
+```
+cl /std:c++20 ProblemSet1.cpp
+```
+
+Run the program:
+```./ProblemSet1```
+
+The program will display the prime numbers found according to the specified task division and print variation.
 
 Example config.txt:
 ```
