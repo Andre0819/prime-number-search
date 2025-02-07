@@ -22,7 +22,7 @@ using namespace std;
 using namespace chrono;
 
 mutex printMutex;  
-vector <int> primeNumbers;
+vector<int> primeNumbers;
 
 // Config parameters
 string printVariation, taskDivision;
@@ -233,6 +233,7 @@ bool findPrimesDivisibility(int n, ThreadPool& pool) {
 
 void startPrimeSearch() {
   vector<thread> threads;
+  vector <int> primeNumbersBII;
 
   auto startTime = high_resolution_clock::now();
   string startTimestamp = getCurrentTimestamp();
@@ -251,7 +252,7 @@ void startPrimeSearch() {
     ThreadPool pool(numThreads);
     for (int i = 2; i <= searchLimit; i++) {
 			if (findPrimesDivisibility(i, pool)) {
-				printPrime(i);
+        primeNumbersBII.emplace_back(i);
 			}
     }
 
@@ -261,7 +262,13 @@ void startPrimeSearch() {
     t.join();
   }
 
-  if (printVariation == "II") {
+  if (printVariation == "II" && taskDivision == "II") {
+    std::cout << "All primes found: " << endl;
+    for (const auto& num : primeNumbersBII) {
+      std::cout << num << " ";
+    }
+  }
+  if (printVariation == "II" && taskDivision == "I") {
     lock_guard<mutex> lock(printMutex);
     std::cout << "All primes found: " << endl;
     for (const auto& num : primeNumbers) {
