@@ -252,7 +252,7 @@ void startPrimeSearch() {
     ThreadPool pool(numThreads);
     for (int i = 2; i <= searchLimit; i++) {
 			if (findPrimesDivisibility(i, pool)) {
-        primeNumbersBII.emplace_back(i);
+        printPrime(i);
 			}
     }
 
@@ -262,13 +262,7 @@ void startPrimeSearch() {
     t.join();
   }
 
-  if (printVariation == "II" && taskDivision == "II") {
-    std::cout << "All primes found: " << endl;
-    for (const auto& num : primeNumbersBII) {
-      std::cout << num << " ";
-    }
-  }
-  if (printVariation == "II" && taskDivision == "I") {
+  if (printVariation == "II") {
     lock_guard<mutex> lock(printMutex);
     std::cout << "All primes found: " << endl;
     for (const auto& num : primeNumbers) {
