@@ -10,17 +10,77 @@
 #include <sstream>
 #include <cctype>
 #include <iomanip>
-#include <ranges>
+#include <atomic>
+#include <cmath>
+#include <condition_variable>
+#include <queue>
+#include <future>
+#include <functional>
+#include <deque>
 
 using namespace std;
 using namespace chrono;
 
 mutex printMutex;  
-vector<pair<int, thread::id>> primeNumbers; 
+vector <int> primeNumbers;
 
 // Config parameters
 string printVariation, taskDivision;
 int numThreads, searchLimit;
+
+class ThreadPool {
+public:
+  ThreadPool(size_t numThreads) : done(false) {
+    for (size_t i = 0; i < numThreads; ++i) {
+      workers.emplace_back([this]() {
+        while (true) {
+          Task task;
+          {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            condition.wait(lock, [this]() { return done || !tasks.empty(); });
+            if (done && tasks.empty()) return;
+            task = std::move(tasks.front());
+            tasks.pop_front();
+          }
+          task();
+        }
+        });
+    }
+  }
+
+  ~ThreadPool() {
+    {
+      std::unique_lock<std::mutex> lock(queueMutex);
+      done = true;
+    }
+    condition.notify_all();
+    for (std::thread& worker : workers) {
+      worker.join();
+    }
+  }
+
+  template <typename F>
+  auto enqueue(F&& f) -> std::future<typename std::result_of<F()>::type> {
+    using ReturnType = typename std::result_of<F()>::type;
+    auto task = std::make_shared<std::packaged_task<ReturnType()>>(std::forward<F>(f));
+
+    std::future<ReturnType> res = task->get_future();
+    {
+      std::unique_lock<std::mutex> lock(queueMutex);
+      tasks.emplace_back([task]() { (*task)(); });
+    }
+    condition.notify_one();
+    return res;
+  }
+
+private:
+  using Task = std::function<void()>;
+  std::vector<std::thread> workers;
+  std::deque<Task> tasks;
+  std::mutex queueMutex;
+  std::condition_variable condition;
+  bool done;
+};
 
 bool is_digits(string& str)
 {
@@ -125,16 +185,15 @@ bool isPrimeNumber(int num) {
 }
 
 void printPrime(int num) {
-  thread::id tid = this_thread::get_id();
-  
   if (printVariation == "I") {
     lock_guard<mutex> lock(printMutex);
+    thread::id tid = this_thread::get_id();
     string timestamp = getCurrentTimestamp();
-    cout << "Thread [" << tid << "]: Found prime " << num << " at " << timestamp << endl;
+    std::cout << "Thread [" << tid << "]: Found prime " << num << " at " << timestamp << endl;
   }
   else {
     lock_guard<mutex> lock(printMutex);
-    primeNumbers.emplace_back(num, tid);
+    primeNumbers.emplace_back(num);
   }
 }
 
@@ -149,19 +208,36 @@ void findPrimesRange(int start, int end) {
 }
 
 // Task division II: Each thread checks divisibility for a single number
-void findPrimesDivisibility(int num) {
-  if (isPrimeNumber(num)) {
-    printPrime(num);
+bool findPrimesDivisibility(int n, ThreadPool& pool) {
+  if (n < 2) return false;
+  if (n == 2 || n == 3) return true;
+
+  std::atomic<bool> isPrime(true);
+  std::vector<std::future<void>> futures;
+
+  for (int j = 2; j <= std::sqrt(n); j++) {
+    futures.push_back(pool.enqueue([&isPrime, n, j]() {
+      if (n % j == 0) {
+        isPrime.store(false, std::memory_order_relaxed);
+      }
+      }));
   }
+
+  for (auto& future : futures) {
+    future.get();  
+  }
+
+  return isPrime.load();
 }
+
 
 void startPrimeSearch() {
   vector<thread> threads;
 
   auto startTime = high_resolution_clock::now();
   string startTimestamp = getCurrentTimestamp();
-  cout << "Search started at: " << startTimestamp << endl;
-  cout << endl;
+  std::cout << "Search started at: " << startTimestamp << endl;
+  std::cout << endl;
 
   if (taskDivision == "I") {
     int chunkSize = searchLimit / numThreads;
@@ -172,13 +248,13 @@ void startPrimeSearch() {
     }
   }
   else if (taskDivision == "II") {
-    for (int i = 1; i <= searchLimit; i++) {
-      threads.emplace_back(findPrimesDivisibility, i);
-      if (threads.size() >= numThreads) {
-        for (auto& t : threads) t.join();
-        threads.clear();
-      }
+    ThreadPool pool(numThreads);
+    for (int i = 2; i <= searchLimit; i++) {
+			if (findPrimesDivisibility(i, pool)) {
+				printPrime(i);
+			}
     }
+
   }
 
   for (auto& t : threads) {
@@ -187,18 +263,18 @@ void startPrimeSearch() {
 
   if (printVariation == "II") {
     lock_guard<mutex> lock(printMutex);
-    cout << "All primes found: " << endl;
-    for (const auto& pair : primeNumbers) {
-      cout << "Thread [" << hash<thread::id>{}(pair.second) << "]: " << pair.first << endl;
+    std::cout << "All primes found: " << endl;
+    for (const auto& num : primeNumbers) {
+      std::cout << num << " ";
     }
   }
-  cout << endl;
+  std::cout << endl;
   auto endTime = high_resolution_clock::now();
   string endTimestamp = getCurrentTimestamp();
-  cout << "Search ended at: " << endTimestamp << endl;
+  std::cout << "Search ended at: " << endTimestamp << endl;
 
   auto duration = duration_cast<milliseconds>(endTime - startTime);
-  cout << "Total execution time: " << duration.count() << " ms" << endl;
+  std::cout << "Total execution time: " << duration.count() << " ms" << endl;
 }
 
 int main() {
